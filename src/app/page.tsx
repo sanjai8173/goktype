@@ -1,69 +1,186 @@
-import Image from "next/image";
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { Header } from '@/components/Header';
+import { ModeSelector } from '@/components/ModeSelector';
+import { TypingArea } from '@/components/TypingArea';
+import { FingerPositionPreview } from '@/components/FingerPositionPreview';
+import { ResultScreen } from '@/components/ResultScreen';
+import { SettingsModal } from '@/components/SettingsModal';
+import { StatsModal } from '@/components/StatsModal';
+import { LeaderboardModal } from '@/components/LeaderboardModal';
+import { Footer } from '@/components/Footer';
+import {
+  QuoteLength,
+  TestMode,
+  TestResult,
+  TimeOption,
+  UserSettings,
+  WordOption,
+} from '@/types';
+import { DEFAULT_SETTINGS, loadSettings, saveSettings, saveTestResult } from '@/lib/storage/localStorage';
+import { applyThemeToDom, getThemeById } from '@/lib/constants/themes';
 
 export default function Home() {
+  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const [isClientLoaded, setIsClientLoaded] = useState(false);
+
+  // Test mode states
+  const [mode, setMode] = useState<TestMode>('time');
+  const [timeOption, setTimeOption] = useState<TimeOption>(30);
+  const [wordOption, setWordOption] = useState<WordOption>(25);
+  const [quoteLength, setQuoteLength] = useState<QuoteLength>('medium');
+  const [punctuation, setPunctuation] = useState(false);
+  const [numbers, setNumbers] = useState(false);
+
+  // Active typing state
+  const [currentChar, setCurrentChar] = useState<string>('');
+  const [activeResult, setActiveResult] = useState<TestResult | null>(null);
+  const [testKey, setTestKey] = useState(0);
+
+  // Modal open states
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+
+  // Load settings on mount
+  useEffect(() => {
+    const loaded = loadSettings();
+    setSettings(loaded);
+    applyThemeToDom(getThemeById(loaded.theme));
+    setIsClientLoaded(true);
+  }, []);
+
+  // Update theme when setting changes
+  const handleUpdateSettings = (updater: (prev: UserSettings) => UserSettings) => {
+    setSettings((prev) => {
+      const updated = updater(prev);
+      saveSettings(updated);
+      applyThemeToDom(getThemeById(updated.theme));
+      return updated;
+    });
+  };
+
+  // Reset or restart typing test
+  const handleResetTest = () => {
+    setActiveResult(null);
+    setTestKey((k) => k + 1);
+  };
+
+  // Test completion callback
+  const handleFinishTest = (result: TestResult) => {
+    const { isPb } = saveTestResult(result);
+    result.isPb = isPb;
+    setActiveResult(result);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <main className="min-h-screen flex flex-col items-center justify-between px-4 py-2 transition-colors duration-200">
+      {/* Top Header */}
+      <Header
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenStats={() => setIsStatsOpen(true)}
+        onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+        onResetTest={handleResetTest}
+      />
+
+      {/* Main Content Body */}
+      <div className="w-full max-w-5xl flex flex-col items-center justify-center my-auto flex-1">
+        {activeResult ? (
+          /* Test Finished Screen */
+          <ResultScreen
+            result={activeResult}
+            onNextTest={handleResetTest}
+            onRepeatTest={handleResetTest}
+          />
+        ) : (
+          /* Active Typing Test View */
+          <div className="w-full flex flex-col items-center animate-in fade-in duration-150">
+            {/* Mode Selector Pill */}
+            <ModeSelector
+              mode={mode}
+              onSelectMode={(m) => {
+                setMode(m);
+                handleResetTest();
+              }}
+              timeOption={timeOption}
+              onSelectTime={(t) => {
+                setTimeOption(t);
+                handleResetTest();
+              }}
+              wordOption={wordOption}
+              onSelectWord={(w) => {
+                setWordOption(w);
+                handleResetTest();
+              }}
+              quoteLength={quoteLength}
+              onSelectQuoteLength={(l) => {
+                setQuoteLength(l);
+                handleResetTest();
+              }}
+              punctuation={punctuation}
+              onTogglePunctuation={() => {
+                setPunctuation((p) => !p);
+                handleResetTest();
+              }}
+              numbers={numbers}
+              onToggleNumbers={() => {
+                setNumbers((n) => !n);
+                handleResetTest();
+              }}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+            {/* Monkeytype Core Typing Engine */}
+            <TypingArea
+              key={testKey}
+              mode={mode}
+              timeOption={timeOption}
+              wordOption={wordOption}
+              quoteLength={quoteLength}
+              punctuation={punctuation}
+              numbers={numbers}
+              soundPack={settings.soundPack}
+              soundVolume={settings.soundVolume}
+              caretStyle={settings.caretStyle}
+              onFinishTest={handleFinishTest}
+              onCurrentCharChange={setCurrentChar}
+            />
+
+            {/* EdClub Interactive Finger & Hands Position Previewer */}
+            {(settings.showHandsPreview || settings.showKeyboard) && (
+              <FingerPositionPreview
+                currentChar={currentChar}
+                isFocused={true}
+                showHands={settings.showHandsPreview}
+                showKeyboard={settings.showKeyboard}
+              />
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <Footer />
+
+      {/* Modals */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
+      />
+
+      <StatsModal
+        isOpen={isStatsOpen}
+        onClose={() => setIsStatsOpen(false)}
+      />
+
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+      />
+    </main>
   );
 }
