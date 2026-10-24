@@ -35,6 +35,7 @@ interface HeaderProps {
   onOpenStats: () => void;
   onOpenLeaderboard: () => void;
   onResetTest: () => void;
+  isTyping?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -44,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenStats,
   onOpenLeaderboard,
   onResetTest,
+  isTyping = false,
 }) => {
   const toggleSound = () => {
     onUpdateSettings((prev) => ({
@@ -60,112 +62,94 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="w-full max-w-5xl flex items-center justify-between py-6 px-4 select-none">
-      {/* Brand: goktype */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onResetTest}
-          className="group flex items-center gap-2.5 transition-transform duration-200 hover:scale-105 text-left focus:outline-none"
-          title="Restart Test"
-        >
-          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-tr from-[var(--main-color)] to-[var(--main-color)]/70 flex items-center justify-center text-[var(--bg-color)] shadow-lg shadow-[var(--main-color)]/20">
-            <Crown className="w-5 h-5 fill-current stroke-current" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-mono text-2xl font-black tracking-tight text-[var(--text-color)] group-hover:text-[var(--main-color)] transition-colors">
-                gok<span className="text-[var(--main-color)]">type</span>
-              </span>
-              <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-[var(--sub-alt-color)] text-[var(--main-color)] border border-[var(--main-color)]/30">
-                PRO
-              </span>
-            </div>
-            <p className="text-[10px] text-[var(--sub-color)] font-mono tracking-wider -mt-0.5">
-              by{' '}
-              <a
-                href="https://github.com/sanjai8173"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="hover:text-[var(--main-color)] transition-colors underline decoration-dotted"
-              >
-                sanjai8173
-              </a>
-            </p>
-          </div>
-        </button>
-      </div>
+    <header
+      className={`w-full max-w-5xl flex items-center justify-between py-4 px-4 select-none transition-all duration-500 ${
+        isTyping ? 'opacity-0 pointer-events-none -translate-y-2' : 'opacity-100 translate-y-0'
+      }`}
+    >
+      {/* Brand */}
+      <button
+        onClick={onResetTest}
+        className="group flex items-center gap-2 transition-all duration-200 hover:scale-[1.02] text-left focus:outline-none"
+        title="Home"
+      >
+        <div className="relative w-8 h-8 rounded-lg bg-[var(--main-color)] flex items-center justify-center text-[var(--bg-color)] shadow-md shadow-[var(--main-color)]/15">
+          <Crown className="w-4 h-4 fill-current stroke-current" />
+        </div>
+        <div>
+          <span className="font-mono text-xl font-black tracking-tight text-[var(--text-color)] group-hover:text-[var(--main-color)] transition-colors leading-none">
+            gok<span className="text-[var(--main-color)]">type</span>
+          </span>
+        </div>
+      </button>
 
-      {/* Navigation & Controls */}
-      <div className="flex items-center gap-1 sm:gap-2">
-        <button
-          onClick={onResetTest}
-          className="p-2.5 rounded-xl hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-colors"
-          title="Typing Test"
-        >
-          <Keyboard className="w-5 h-5" />
-        </button>
+      {/* Nav */}
+      <nav className="flex items-center gap-0.5">
+        {([
+          { icon: Keyboard, action: onResetTest, tip: 'Typing Test', active: false },
+          { icon: Trophy, action: onOpenLeaderboard, tip: 'Personal Bests', active: false },
+          { icon: BarChart3, action: onOpenStats, tip: 'Statistics', active: false },
+        ] as const).map((item, idx) => (
+          <button
+            key={idx}
+            onClick={item.action}
+            className="p-2 rounded-lg hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-all duration-150 active:scale-90"
+            title={item.tip}
+          >
+            <item.icon className="w-[18px] h-[18px]" />
+          </button>
+        ))}
 
-        <button
-          onClick={onOpenLeaderboard}
-          className="p-2.5 rounded-xl hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-colors"
-          title="Personal Bests"
-        >
-          <Trophy className="w-5 h-5" />
-        </button>
-
-        <button
-          onClick={onOpenStats}
-          className="p-2.5 rounded-xl hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-colors"
-          title="Statistics & History"
-        >
-          <BarChart3 className="w-5 h-5" />
-        </button>
+        <div className="w-px h-4 bg-[var(--sub-color)]/15 mx-1" />
 
         <button
           onClick={toggleSound}
-          className={`p-2.5 rounded-xl hover:bg-[var(--sub-alt-color)] transition-colors ${
+          className={`p-2 rounded-lg transition-all duration-150 active:scale-90 ${
             settings.soundPack !== 'off'
-              ? 'text-[var(--main-color)]'
-              : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
+              ? 'text-[var(--main-color)] bg-[var(--main-color)]/10'
+              : 'text-[var(--sub-color)] hover:text-[var(--text-color)] hover:bg-[var(--sub-alt-color)]'
           }`}
-          title={`Typing Sounds: ${settings.soundPack !== 'off' ? settings.soundPack : 'Off'}`}
+          title={`Sound: ${settings.soundPack !== 'off' ? settings.soundPack : 'Off'}`}
         >
-          {settings.soundPack !== 'off' ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+          {settings.soundPack !== 'off' ? (
+            <Volume2 className="w-[18px] h-[18px]" />
+          ) : (
+            <VolumeX className="w-[18px] h-[18px]" />
+          )}
         </button>
 
         <button
           onClick={toggleHands}
-          className={`p-2.5 rounded-xl hover:bg-[var(--sub-alt-color)] transition-colors ${
+          className={`p-2 rounded-lg transition-all duration-150 active:scale-90 ${
             settings.showHandsPreview
-              ? 'text-[var(--main-color)]'
-              : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
+              ? 'text-[var(--main-color)] bg-[var(--main-color)]/10'
+              : 'text-[var(--sub-color)] hover:text-[var(--text-color)] hover:bg-[var(--sub-alt-color)]'
           }`}
-          title="Toggle Finger Guide & Hands"
+          title="Finger Guide"
         >
-          <Hand className="w-5 h-5" />
+          <Hand className="w-[18px] h-[18px]" />
         </button>
 
         <button
           onClick={onOpenSettings}
-          className="p-2.5 rounded-xl hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-colors"
-          title="Settings & Themes"
+          className="p-2 rounded-lg hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-all duration-150 active:scale-90"
+          title="Settings"
         >
-          <SettingsIcon className="w-5 h-5" />
+          <SettingsIcon className="w-[18px] h-[18px]" />
         </button>
 
-        <div className="w-px h-5 bg-[var(--sub-color)]/20 mx-1" />
+        <div className="w-px h-4 bg-[var(--sub-color)]/15 mx-1" />
 
         <a
           href="https://github.com/sanjai8173/goktype"
           target="_blank"
           rel="noopener noreferrer"
-          className="p-2.5 rounded-xl hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-colors"
-          title="GitHub Repo"
+          className="p-2 rounded-lg hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-all duration-150 active:scale-90"
+          title="GitHub"
         >
-          <GithubIcon className="w-5 h-5" />
+          <GithubIcon className="w-[18px] h-[18px]" />
         </a>
-      </div>
+      </nav>
     </header>
   );
 };

@@ -17,7 +17,7 @@ interface ModeSelectorProps {
   onTogglePunctuation: () => void;
   numbers: boolean;
   onToggleNumbers: () => void;
-  disabled?: boolean;
+  isTyping?: boolean;
 }
 
 export const ModeSelector: React.FC<ModeSelectorProps> = ({
@@ -33,157 +33,125 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
   onTogglePunctuation,
   numbers,
   onToggleNumbers,
-  disabled = false,
+  isTyping = false,
 }) => {
+  const Pill = ({
+    active,
+    onClick,
+    children,
+  }: {
+    active: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+  }) => (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 active:scale-95 ${
+        active
+          ? 'text-[var(--main-color)] bg-[var(--main-color)]/10'
+          : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+
+  const SubPill = ({
+    active,
+    onClick,
+    children,
+  }: {
+    active: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+  }) => (
+    <button
+      onClick={onClick}
+      className={`px-2 py-1 rounded-md text-xs transition-all duration-150 active:scale-95 ${
+        active
+          ? 'text-[var(--main-color)] font-bold'
+          : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+
+  const Sep = () => <div className="w-px h-4 bg-[var(--sub-color)]/15 mx-0.5" />;
+
   return (
     <div
-      className={`flex flex-wrap items-center justify-center gap-2 py-2 px-4 rounded-xl bg-[var(--sub-alt-color)]/70 border border-[var(--sub-color)]/20 shadow-md text-xs font-mono font-medium transition-opacity select-none ${
-        disabled ? 'opacity-30 pointer-events-none' : 'opacity-100'
+      className={`flex flex-wrap items-center justify-center gap-1 py-2 px-3 rounded-xl bg-[var(--sub-alt-color)]/50 border border-[var(--sub-color)]/10 font-mono transition-all duration-500 select-none ${
+        isTyping
+          ? 'opacity-0 pointer-events-none scale-95 -translate-y-2'
+          : 'opacity-100 scale-100 translate-y-0'
       }`}
     >
       {/* Punctuation & Numbers */}
-      <div className="flex items-center gap-1">
-        <button
-          onClick={onTogglePunctuation}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all ${
-            punctuation
-              ? 'bg-[var(--main-color)] text-[var(--bg-color)] font-bold shadow-sm'
-              : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
-          }`}
-          title="Toggle punctuation"
-        >
-          <AtSign className="w-3.5 h-3.5" />
-          <span>punctuation</span>
-        </button>
+      <Pill active={punctuation} onClick={onTogglePunctuation}>
+        <AtSign className="w-3 h-3" />
+        <span className="hidden sm:inline">punctuation</span>
+      </Pill>
 
-        <button
-          onClick={onToggleNumbers}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all ${
-            numbers
-              ? 'bg-[var(--main-color)] text-[var(--bg-color)] font-bold shadow-sm'
-              : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
-          }`}
-          title="Toggle numbers"
-        >
-          <Hash className="w-3.5 h-3.5" />
-          <span>numbers</span>
-        </button>
-      </div>
+      <Pill active={numbers} onClick={onToggleNumbers}>
+        <Hash className="w-3 h-3" />
+        <span className="hidden sm:inline">numbers</span>
+      </Pill>
 
-      <div className="w-px h-4 bg-[var(--sub-color)]/25 mx-1" />
+      <Sep />
 
-      {/* Main Modes */}
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => onSelectMode('time')}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all ${
-            mode === 'time'
-              ? 'bg-[var(--main-color)] text-[var(--bg-color)] font-bold shadow-sm'
-              : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
-          }`}
-        >
-          <Clock className="w-3.5 h-3.5" />
-          <span>time</span>
-        </button>
+      {/* Modes */}
+      <Pill active={mode === 'time'} onClick={() => onSelectMode('time')}>
+        <Clock className="w-3 h-3" />
+        time
+      </Pill>
 
-        <button
-          onClick={() => onSelectMode('words')}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all ${
-            mode === 'words'
-              ? 'bg-[var(--main-color)] text-[var(--bg-color)] font-bold shadow-sm'
-              : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
-          }`}
-        >
-          <Type className="w-3.5 h-3.5" />
-          <span>words</span>
-        </button>
+      <Pill active={mode === 'words'} onClick={() => onSelectMode('words')}>
+        <Type className="w-3 h-3" />
+        words
+      </Pill>
 
-        <button
-          onClick={() => onSelectMode('quote')}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all ${
-            mode === 'quote'
-              ? 'bg-[var(--main-color)] text-[var(--bg-color)] font-bold shadow-sm'
-              : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
-          }`}
-        >
-          <Quote className="w-3.5 h-3.5" />
-          <span>quote</span>
-        </button>
+      <Pill active={mode === 'quote'} onClick={() => onSelectMode('quote')}>
+        <Quote className="w-3 h-3" />
+        quote
+      </Pill>
 
-        <button
-          onClick={() => onSelectMode('zen')}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all ${
-            mode === 'zen'
-              ? 'bg-[var(--main-color)] text-[var(--bg-color)] font-bold shadow-sm'
-              : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
-          }`}
-        >
-          <Flame className="w-3.5 h-3.5" />
-          <span>zen</span>
-        </button>
-      </div>
+      <Pill active={mode === 'zen'} onClick={() => onSelectMode('zen')}>
+        <Flame className="w-3 h-3" />
+        zen
+      </Pill>
 
       {/* Sub-options */}
       {mode === 'time' && (
         <>
-          <div className="w-px h-4 bg-[var(--sub-color)]/25 mx-1" />
-          <div className="flex items-center gap-1">
-            {([15, 30, 60, 120] as TimeOption[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => onSelectTime(t)}
-                className={`px-2 py-1 rounded-md transition-all ${
-                  timeOption === t
-                    ? 'text-[var(--main-color)] font-bold underline underline-offset-4 decoration-2'
-                    : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          <Sep />
+          {([15, 30, 60, 120] as TimeOption[]).map((t) => (
+            <SubPill key={t} active={timeOption === t} onClick={() => onSelectTime(t)}>
+              {t}
+            </SubPill>
+          ))}
         </>
       )}
 
       {mode === 'words' && (
         <>
-          <div className="w-px h-4 bg-[var(--sub-color)]/25 mx-1" />
-          <div className="flex items-center gap-1">
-            {([10, 25, 50, 100] as WordOption[]).map((w) => (
-              <button
-                key={w}
-                onClick={() => onSelectWord(w)}
-                className={`px-2 py-1 rounded-md transition-all ${
-                  wordOption === w
-                    ? 'text-[var(--main-color)] font-bold underline underline-offset-4 decoration-2'
-                    : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
-                }`}
-              >
-                {w}
-              </button>
-            ))}
-          </div>
+          <Sep />
+          {([10, 25, 50, 100] as WordOption[]).map((w) => (
+            <SubPill key={w} active={wordOption === w} onClick={() => onSelectWord(w)}>
+              {w}
+            </SubPill>
+          ))}
         </>
       )}
 
       {mode === 'quote' && (
         <>
-          <div className="w-px h-4 bg-[var(--sub-color)]/25 mx-1" />
-          <div className="flex items-center gap-1">
-            {(['short', 'medium', 'long'] as QuoteLength[]).map((len) => (
-              <button
-                key={len}
-                onClick={() => onSelectQuoteLength(len)}
-                className={`px-2 py-1 rounded-md capitalize transition-all ${
-                  quoteLength === len
-                    ? 'text-[var(--main-color)] font-bold underline underline-offset-4 decoration-2'
-                    : 'text-[var(--sub-color)] hover:text-[var(--text-color)]'
-                }`}
-              >
-                {len}
-              </button>
-            ))}
-          </div>
+          <Sep />
+          {(['short', 'medium', 'long'] as QuoteLength[]).map((len) => (
+            <SubPill key={len} active={quoteLength === len} onClick={() => onSelectQuoteLength(len)}>
+              {len}
+            </SubPill>
+          ))}
         </>
       )}
     </div>

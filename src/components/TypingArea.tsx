@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { RotateCcw, MousePointerClick } from 'lucide-react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { RotateCcw } from 'lucide-react';
 import {
   CaretStyle,
   QuoteItem,
@@ -28,6 +28,7 @@ interface TypingAreaProps {
   caretStyle: CaretStyle;
   onFinishTest: (result: TestResult) => void;
   onCurrentCharChange: (char: string) => void;
+  onTypingStateChange?: (isTyping: boolean) => void;
 }
 
 interface LetterInfo {
@@ -52,6 +53,7 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
   caretStyle,
   onFinishTest,
   onCurrentCharChange,
+  onTypingStateChange,
 }) => {
   const [words, setWords] = useState<WordInfo[]>([]);
   const [quoteSource, setQuoteSource] = useState<string>('');
@@ -62,6 +64,7 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
   const [isFocused, setIsFocused] = useState(true);
   const [timeLeft, setTimeLeft] = useState<number>(timeOption);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [liveWpm, setLiveWpm] = useState(0);
 
   // Tracking keystrokes
   const keystrokeStats = useRef({
@@ -73,17 +76,20 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
   });
 
   const timelineRef = useRef<SecondSnapshot[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const wordsWrapperRef = useRef<HTMLDivElement>(null);
+  const wordsInnerRef = useRef<HTMLDivElement>(null);
+  const activeWordRef = useRef<HTMLDivElement>(null);
   const activeLetterRef = useRef<HTMLSpanElement | null>(null);
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollOffsetRef = useRef(0);
 
-  // Caret coordinates
-  const [caretPos, setCaretPos] = useState<{ left: number; top: number; height: number }>({
-    left: 0,
-    top: 0,
-    height: 32,
-  });
+  // Caret coordinates (relative to wordsWrapper)
+  const [caretX, setCaretX] = useState(0);
+  const [caretY, setCaretY] = useState(0);
+  const [caretH, setCaretH] = useState(36);
+  const [isCaretMoving, setIsCaretMoving] = useState(false);
+  const caretTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize word list based on mode
   const initTest = useCallback(() => {
@@ -100,18 +106,20 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
       totalKeystrokes: 0,
     };
     timelineRef.current = [];
+    scrollOffsetRef.current = 0;
     setHasStarted(false);
     setCurrentWordIndex(0);
     setCurrentLetterIndex(0);
     setElapsedSeconds(0);
     setTimeLeft(timeOption);
+    setLiveWpm(0);
+    onTypingStateChange?.(false);
 
     let rawList: string[] = [];
     let source = '';
 
     if (mode === 'time') {
-      // Generate 120 words for smooth continuous scrolling
-      rawList = getRandomWords(120, punctuation, numbers);
+      rawList = getRandomWords(200, punctuation, numbers);
     } else if (mode === 'words') {
       rawList = getRandomWords(wordOption, punctuation, numbers);
     } else if (mode === 'quote') {
@@ -126,79 +134,108 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
 
     const formatted: WordInfo[] = rawList.map((w) => ({
       original: w,
-      letters: w.split('').map((c) => ({ char: c, status: 'pending' })),
+      letters: w.split('').map((c) => ({ char: c, status: 'pending' as const })),
     }));
 
     setWords(formatted);
 
-    // Initial target character
     if (formatted.length > 0 && formatted[0].letters.length > 0) {
       onCurrentCharChange(formatted[0].letters[0].char);
     }
 
     setTimeout(() => {
-      if (hiddenInputRef.current) {
-        hiddenInputRef.current.focus();
-      }
+      hiddenInputRef.current?.focus();
     }, 50);
-  }, [mode, timeOption, wordOption, quoteLength, punctuation, numbers, onCurrentCharChange]);
+  }, [mode, timeOption, wordOption, quoteLength, punctuation, numbers, onCurrentCharChange, onTypingStateChange]);
 
   useEffect(() => {
     initTest();
   }, [initTest]);
 
-  // Update target char when current word or letter changes
+  // Update target char
   useEffect(() => {
     if (words.length > 0 && currentWordIndex < words.length) {
       const curWord = words[currentWordIndex];
       if (currentLetterIndex < curWord.letters.length) {
         onCurrentCharChange(curWord.letters[currentLetterIndex].char);
       } else {
-        // At the end of the word, expected key is spacebar
         onCurrentCharChange(' ');
       }
     }
   }, [words, currentWordIndex, currentLetterIndex, onCurrentCharChange]);
 
-  // Update Caret Position
+  // ── Caret positioning via DOM measurement ──
   const updateCaret = useCallback(() => {
-    if (!containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
+    if (!wordsWrapperRef.current) return;
+    const wrapperRect = wordsWrapperRef.current.getBoundingClientRect();
 
-    if (activeLetterRef.current) {
-      const letterRect = activeLetterRef.current.getBoundingClientRect();
-      setCaretPos({
-        left: letterRect.left - containerRect.left,
-        top: letterRect.top - containerRect.top,
-        height: letterRect.height,
-      });
+    const el = activeLetterRef.current;
+    if (el) {
+      const r = el.getBoundingClientRect();
+      setCaretX(r.left - wrapperRect.left);
+      setCaretY(r.top - wrapperRect.top);
+      setCaretH(r.height);
     }
   }, []);
 
-  useEffect(() => {
+  // After every render that changes word/letter index, recompute caret
+  useLayoutEffect(() => {
     updateCaret();
-    window.addEventListener('resize', updateCaret);
-    return () => window.removeEventListener('resize', updateCaret);
   }, [currentWordIndex, currentLetterIndex, words, updateCaret]);
 
-  // Finish Test Calculation
+  useEffect(() => {
+    window.addEventListener('resize', updateCaret);
+    return () => window.removeEventListener('resize', updateCaret);
+  }, [updateCaret]);
+
+  // ── Smooth line scrolling ──
+  // Monkeytype keeps ~3 lines visible and scrolls when the active word
+  // moves past the first visible line.
+  useLayoutEffect(() => {
+    if (!wordsWrapperRef.current || !activeWordRef.current || !wordsInnerRef.current) return;
+    const wrapperRect = wordsWrapperRef.current.getBoundingClientRect();
+    const wordRect = activeWordRef.current.getBoundingClientRect();
+
+    // word's top relative to the inner (scrollable) container, accounting
+    // for the current scroll offset
+    const wordRelativeTop = wordRect.top - wrapperRect.top + scrollOffsetRef.current;
+
+    // Each line is roughly the line-height. We want the active word to stay
+    // within the first 1.5 lines (so we see context ahead).
+    const lineHeight = caretH * 1.65; // approximate line + gap
+    const targetTop = lineHeight * 0.05; // keep active on first line
+
+    if (wordRelativeTop > lineHeight) {
+      const newOffset = wordRelativeTop - targetTop;
+      scrollOffsetRef.current = newOffset;
+      wordsInnerRef.current.style.transform = `translateY(-${newOffset}px)`;
+    }
+  }, [currentWordIndex, caretH]);
+
+  // ── Caret "moving" state for blink vs smooth ──
+  const markCaretMoving = useCallback(() => {
+    setIsCaretMoving(true);
+    if (caretTimerRef.current) clearTimeout(caretTimerRef.current);
+    caretTimerRef.current = setTimeout(() => setIsCaretMoving(false), 800);
+  }, []);
+
+  // ── Finish test ──
   const finishTest = useCallback(() => {
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
+    onTypingStateChange?.(false);
 
     const duration = mode === 'time' ? timeOption : Math.max(1, elapsedSeconds);
     const stats = keystrokeStats.current;
     const totalChars = stats.correct + stats.incorrect + stats.extra;
 
-    // Standard Monkeytype calculation: (all typed correct chars / 5) / (duration / 60)
     const minutes = Math.max(0.01, duration / 60);
     const wpm = Math.round((stats.correct / 5) / minutes);
     const rawWpm = Math.round((totalChars / 5) / minutes);
     const accuracy = totalChars > 0 ? Math.round((stats.correct / totalChars) * 100) : 0;
 
-    // Consistency calculation based on timeline standard deviation
     let consistency = 80;
     if (timelineRef.current.length > 2) {
       const wpms = timelineRef.current.map((t) => t.wpm);
@@ -236,9 +273,9 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
     };
 
     onFinishTest(result);
-  }, [mode, timeOption, wordOption, quoteLength, punctuation, numbers, elapsedSeconds, onFinishTest]);
+  }, [mode, timeOption, wordOption, quoteLength, punctuation, numbers, elapsedSeconds, onFinishTest, onTypingStateChange]);
 
-  // Timer loop
+  // ── Timer ──
   useEffect(() => {
     if (!hasStarted) return;
 
@@ -246,11 +283,12 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
       setElapsedSeconds((prev) => {
         const nextSec = prev + 1;
 
-        // Take snapshot for timeline graph
         const stats = keystrokeStats.current;
         const minutes = Math.max(0.01, nextSec / 60);
         const curWpm = Math.round((stats.correct / 5) / minutes);
         const curRaw = Math.round(((stats.correct + stats.incorrect + stats.extra) / 5) / minutes);
+
+        setLiveWpm(curWpm);
 
         timelineRef.current.push({
           second: nextSec,
@@ -274,22 +312,18 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
     }, 1000);
 
     return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
   }, [hasStarted, mode, finishTest]);
 
-  // Handle typing keydown
+  // ── Keyboard handler ──
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Quick restart on Tab
     if (e.key === 'Tab') {
       e.preventDefault();
       initTest();
       return;
     }
 
-    // Escape to finish zen or restart
     if (e.key === 'Escape') {
       e.preventDefault();
       if (mode === 'zen' && hasStarted) {
@@ -300,25 +334,23 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
       return;
     }
 
-    // Ignore modifier keys
-    if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta' || e.key === 'CapsLock') {
-      return;
-    }
+    if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) return;
 
-    // Start timer on first keypress
     if (!hasStarted) {
       setHasStarted(true);
+      onTypingStateChange?.(true);
     }
+
+    markCaretMoving();
 
     const curWord = words[currentWordIndex];
     if (!curWord) return;
 
-    // SPACE: Move to next word
+    // SPACE
     if (e.key === ' ') {
       e.preventDefault();
       soundPlayer.playKey(soundPack, soundVolume, true);
 
-      // Any untyped letters in this word become missed
       let newWords = [...words];
       let missedCount = 0;
       for (let i = currentLetterIndex; i < curWord.letters.length; i++) {
@@ -330,15 +362,13 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
       keystrokeStats.current.missed += missedCount;
       keystrokeStats.current.incorrect += missedCount;
 
-      // Check if finished in words / quote mode
       if (currentWordIndex >= words.length - 1) {
         finishTest();
         return;
       }
 
-      // Automatically add more words in time / zen mode if running low
-      if ((mode === 'time' || mode === 'zen') && currentWordIndex > words.length - 30) {
-        const extraWords = getRandomWords(60, punctuation, numbers).map((w) => ({
+      if ((mode === 'time' || mode === 'zen') && currentWordIndex > words.length - 40) {
+        const extraWords = getRandomWords(80, punctuation, numbers).map((w) => ({
           original: w,
           letters: w.split('').map((c) => ({ char: c, status: 'pending' as const })),
         }));
@@ -360,7 +390,6 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
         const nextLetters = [...curWord.letters];
         const lastLetter = nextLetters[currentLetterIndex - 1];
 
-        // If extra character, remove it completely
         if (lastLetter.status === 'extra') {
           nextLetters.splice(currentLetterIndex - 1, 1);
           curWord.letters = nextLetters;
@@ -369,14 +398,14 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
           return;
         }
 
-        // Revert to pending
         lastLetter.status = 'pending';
         setWords([...words]);
         setCurrentLetterIndex((prev) => prev - 1);
       } else if (currentWordIndex > 0) {
-        // Can jump back to previous word if it has errors
         const prevWord = words[currentWordIndex - 1];
-        const hasErrors = prevWord.letters.some((l) => l.status === 'incorrect' || l.status === 'extra');
+        const hasErrors = prevWord.letters.some(
+          (l) => l.status === 'incorrect' || l.status === 'extra'
+        );
         if (hasErrors) {
           setCurrentWordIndex((prev) => prev - 1);
           setCurrentLetterIndex(prevWord.letters.length);
@@ -385,7 +414,7 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
       return;
     }
 
-    // REGULAR CHARACTER KEYPRESS
+    // CHARACTER
     if (e.key.length === 1) {
       e.preventDefault();
       keystrokeStats.current.totalKeystrokes++;
@@ -401,7 +430,10 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
         setWords([...words]);
         setCurrentLetterIndex((prev) => prev + 1);
 
-        // Check if finished on last letter of last word
+        // Update live WPM instantly for responsive feel
+        const elapsed = elapsedSeconds || 0.5;
+        setLiveWpm(Math.round((keystrokeStats.current.correct / 5) / (elapsed / 60)));
+
         if (
           currentWordIndex === words.length - 1 &&
           currentLetterIndex + 1 >= curWord.letters.length &&
@@ -410,7 +442,6 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
           finishTest();
         }
       } else {
-        // Error keypress
         soundPlayer.playKey(soundPack, soundVolume, false, true);
         keystrokeStats.current.incorrect++;
 
@@ -419,12 +450,8 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
           setWords([...words]);
           setCurrentLetterIndex((prev) => prev + 1);
         } else {
-          // Extra characters typed past word length
           keystrokeStats.current.extra++;
-          curWord.letters.push({
-            char: e.key,
-            status: 'extra',
-          });
+          curWord.letters.push({ char: e.key, status: 'extra' });
           setWords([...words]);
           setCurrentLetterIndex((prev) => prev + 1);
         }
@@ -432,149 +459,185 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
     }
   };
 
-  // Focus container click handler
   const handleContainerClick = () => {
-    if (hiddenInputRef.current) {
-      hiddenInputRef.current.focus();
-      setIsFocused(true);
-    }
+    hiddenInputRef.current?.focus();
+    setIsFocused(true);
   };
 
+  // ── Render ──
   return (
     <div
       onClick={handleContainerClick}
-      className="relative w-full max-w-4xl flex flex-col items-center justify-center my-6 cursor-text select-none min-h-[220px]"
+      className="relative w-full max-w-4xl flex flex-col items-center justify-center mt-8 mb-4 cursor-text select-none"
     >
-      {/* Hidden input to capture physical keyboard input */}
+      {/* Hidden input */}
       <input
         ref={hiddenInputRef}
         type="text"
-        className="opacity-0 absolute -top-96 left-0 pointer-events-none"
+        className="opacity-0 absolute w-0 h-0 pointer-events-none"
+        style={{ top: -9999, left: -9999, position: 'fixed' }}
         onKeyDown={handleKeyDown}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         autoFocus
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        tabIndex={0}
       />
 
-      {/* Live Counter (Time Left or Word Counter) */}
-      <div className="w-full flex items-center justify-between mb-3 px-2 font-mono text-2xl font-bold text-[var(--main-color)]">
-        <div>
-          {mode === 'time' && (
-            <span>{timeLeft}</span>
-          )}
+      {/* ── Live counter row ── */}
+      <div className="w-full flex items-center justify-between mb-4 px-1">
+        <div className="font-mono text-3xl font-black text-[var(--main-color)] tabular-nums leading-none">
+          {mode === 'time' && <span>{timeLeft}</span>}
           {mode === 'words' && (
             <span>
-              {currentWordIndex}/{wordOption}
+              {currentWordIndex}
+              <span className="text-[var(--sub-color)] text-lg font-medium">/{wordOption}</span>
             </span>
           )}
-          {mode === 'quote' && (
-            <span className="text-xs uppercase text-[var(--sub-color)]">
-              quote mode
-            </span>
+          {mode === 'quote' && hasStarted && (
+            <span className="text-xl">{liveWpm} <span className="text-sm text-[var(--sub-color)] font-medium">wpm</span></span>
           )}
           {mode === 'zen' && (
-            <span className="text-sm text-[var(--sub-color)]">
-              zen: {keystrokeStats.current.correct} chars
-            </span>
+            <span className="text-xl text-[var(--sub-color)] font-medium">zen</span>
           )}
         </div>
+
+        {/* Live WPM (shown during time/words mode while typing) */}
+        {hasStarted && (mode === 'time' || mode === 'words') && (
+          <div className="font-mono text-sm font-semibold text-[var(--sub-color)] tabular-nums">
+            {liveWpm} wpm
+          </div>
+        )}
 
         <button
           onClick={(e) => {
             e.stopPropagation();
             initTest();
           }}
-          className="p-1.5 rounded-lg hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-colors"
-          title="Restart Test (Tab)"
+          className="p-2 rounded-lg hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-all duration-150 active:scale-90"
+          title="Restart (Tab)"
         >
-          <RotateCcw className="w-5 h-5" />
+          <RotateCcw className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Words Container with Monkeytype-style 3-line viewing window */}
+      {/* ── Words display with 3-line window ── */}
       <div
-        ref={containerRef}
-        className="relative w-full text-2xl md:text-3xl font-mono leading-relaxed tracking-wide h-[130px] overflow-hidden flex flex-wrap content-start gap-x-3 gap-y-2.5 transition-all duration-200"
+        ref={wordsWrapperRef}
+        className="words-container relative w-full overflow-hidden"
+        style={{ height: `${caretH * 3.6}px` }}
       >
-        {/* Animated Caret */}
-        {isFocused && (
+        {/* Smooth caret */}
+        {isFocused && caretStyle !== 'off' && (
           <div
             style={{
-              transform: `translate(${caretPos.left}px, ${caretPos.top}px)`,
-              height: `${caretPos.height || 32}px`,
+              transform: `translate(${caretX}px, ${caretY}px)`,
+              height: `${caretH}px`,
+              willChange: 'transform',
             }}
-            className={`absolute pointer-events-none transition-transform duration-100 ease-out z-20 ${
+            className={`absolute pointer-events-none z-20 transition-transform duration-75 ease-out ${
+              isCaretMoving ? '' : 'caret-blink'
+            } ${
               caretStyle === 'line'
-                ? 'w-0.5 bg-[var(--caret-color)] rounded-full animate-pulse'
+                ? 'w-[3px] rounded-full bg-[var(--caret-color)]'
                 : caretStyle === 'block'
-                ? 'w-4 bg-[var(--caret-color)]/30 rounded -ml-0.5'
+                ? 'w-[0.65em] bg-[var(--caret-color)]/25 rounded-sm'
                 : caretStyle === 'underline'
-                ? 'w-4 border-b-2 border-[var(--caret-color)] -ml-0.5 mt-6'
+                ? 'w-[0.65em] border-b-[3px] border-[var(--caret-color)]'
                 : caretStyle === 'box'
-                ? 'w-4 border-2 border-[var(--caret-color)] rounded -ml-0.5'
+                ? 'w-[0.65em] border-2 border-[var(--caret-color)] rounded-sm'
                 : 'hidden'
             }`}
           />
         )}
 
-        {/* Word Display */}
-        {words.map((word, wIdx) => {
-          const isCurrentWord = wIdx === currentWordIndex;
-          const isPastWord = wIdx < currentWordIndex;
+        <div
+          ref={wordsInnerRef}
+          className="flex flex-wrap content-start gap-x-[0.65em] leading-relaxed transition-transform duration-200 ease-out"
+          style={{ fontSize: 'clamp(1.2rem, 2.5vw, 1.75rem)' }}
+        >
+          {words.map((word, wIdx) => {
+            const isCurrentWord = wIdx === currentWordIndex;
+            const isPastWord = wIdx < currentWordIndex;
+            // Mark whole past-word as error if it has any incorrect letters
+            const wordHasError = isPastWord && word.letters.some(
+              (l) => l.status === 'incorrect' || l.status === 'extra'
+            );
 
-          return (
-            <div
-              key={wIdx}
-              className={`flex items-center relative whitespace-nowrap transition-colors duration-150 ${
-                isCurrentWord ? 'text-[var(--text-color)]' : ''
-              }`}
-            >
-              {word.letters.map((letter, lIdx) => {
-                const isCurrentLetter = isCurrentWord && lIdx === currentLetterIndex;
+            return (
+              <div
+                key={wIdx}
+                ref={isCurrentWord ? activeWordRef : null}
+                className={`relative whitespace-nowrap font-mono py-[0.15em] transition-opacity duration-200 ${
+                  isPastWord ? 'opacity-70' : ''
+                } ${wordHasError ? 'border-b-2 border-[var(--error-color)]/50' : ''}`}
+              >
+                {word.letters.map((letter, lIdx) => {
+                  const isCurrentLetter = isCurrentWord && lIdx === currentLetterIndex;
 
-                return (
-                  <span
-                    key={lIdx}
-                    ref={isCurrentLetter ? activeLetterRef : null}
-                    className={`transition-colors duration-75 relative ${
-                      letter.status === 'correct'
-                        ? 'text-[var(--text-color)]'
-                        : letter.status === 'incorrect'
-                        ? 'text-[var(--error-color)] font-semibold underline decoration-2'
-                        : letter.status === 'extra'
-                        ? 'text-[var(--error-extra-color)] opacity-90'
-                        : isPastWord
-                        ? 'text-[var(--sub-color)]/50'
-                        : 'text-[var(--sub-color)]'
-                    }`}
-                  >
-                    {letter.char}
-                  </span>
-                );
-              })}
+                  return (
+                    <span
+                      key={lIdx}
+                      ref={isCurrentLetter ? activeLetterRef : null}
+                      className={`inline-block transition-colors duration-50 ${
+                        letter.status === 'correct'
+                          ? 'text-[var(--text-color)]'
+                          : letter.status === 'incorrect'
+                          ? 'text-[var(--error-color)]'
+                          : letter.status === 'extra'
+                          ? 'text-[var(--error-extra-color)] text-[0.85em]'
+                          : isPastWord
+                          ? 'text-[var(--sub-color)]'
+                          : 'text-[var(--sub-color)]'
+                      }`}
+                    >
+                      {letter.char}
+                    </span>
+                  );
+                })}
 
-              {/* End of word space caret reference */}
-              {isCurrentWord && currentLetterIndex >= word.letters.length && (
-                <span ref={activeLetterRef} className="w-1 inline-block" />
-              )}
-            </div>
-          );
-        })}
+                {/* Space caret ref at end of current word */}
+                {isCurrentWord && currentLetterIndex >= word.letters.length && (
+                  <span ref={activeLetterRef} className="inline-block w-[3px]" />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Quote Author attribution */}
+      {/* Quote source */}
       {mode === 'quote' && quoteSource && (
-        <div className="w-full text-right text-xs font-mono text-[var(--sub-color)] italic mt-2">
+        <div className="w-full text-right text-xs font-mono text-[var(--sub-color)] italic mt-3 pr-1">
           — {quoteSource}
         </div>
       )}
 
-      {/* Blur Overlay: "Click or press any key to focus" */}
+      {/* ── Focus overlay ── */}
       {!isFocused && (
-        <div className="absolute inset-0 bg-[var(--bg-color)]/80 backdrop-blur-[2px] flex items-center justify-center rounded-2xl z-30 transition-all duration-200">
-          <div className="flex items-center gap-2.5 px-6 py-3 rounded-xl bg-[var(--sub-alt-color)] border border-[var(--sub-color)]/30 text-[var(--text-color)] font-mono text-sm font-semibold shadow-xl">
-            <MousePointerClick className="w-4 h-4 text-[var(--main-color)] animate-bounce" />
-            <span>Click or press any key to focus</span>
+        <div className="absolute inset-0 bg-[var(--bg-color)]/85 flex items-center justify-center rounded-xl z-30 blur-enter">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--sub-alt-color)] border border-[var(--sub-color)]/20 flex items-center justify-center">
+              <svg
+                className="w-6 h-6 text-[var(--main-color)]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59"
+                />
+              </svg>
+            </div>
+            <p className="font-mono text-sm text-[var(--sub-color)] font-medium">
+              Click here to focus
+            </p>
           </div>
         </div>
       )}

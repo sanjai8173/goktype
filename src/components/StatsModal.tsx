@@ -11,8 +11,15 @@ interface StatsModalProps {
 }
 
 export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose }) => {
-  const [results, setResults] = useState<TestResult[]>(() => loadTestResults());
-  const [pbs, setPbs] = useState<Record<string, TestResult>>(() => loadPersonalBests());
+  const [results, setResults] = useState<TestResult[]>([]);
+  const [pbs, setPbs] = useState<Record<string, TestResult>>({});
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setResults(loadTestResults());
+      setPbs(loadPersonalBests());
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

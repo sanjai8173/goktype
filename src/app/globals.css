@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@theme inline {
+  --color-background: var(--bg-color);
+  --color-foreground: var(--text-color);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 :root {
   --bg-color: #141419;
   --main-color: #f5b041;
@@ -11,30 +18,170 @@
   --error-extra-color: #991b1b;
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sub-color) transparent;
+}
+
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
   font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   overflow-x: hidden;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Custom scrollbars */
+/* ── Smooth caret blink ── */
+@keyframes caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.caret-blink {
+  animation: caret-blink 1s ease-in-out infinite;
+}
+
+/* ── Smooth caret slide (no blink while typing) ── */
+@keyframes caret-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.caret-breathe {
+  animation: caret-breathe 1.5s ease-in-out infinite;
+}
+
+/* ── Result screen staggered entry ── */
+@keyframes slide-up-fade {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.anim-slide-up {
+  animation: slide-up-fade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.anim-delay-1 { animation-delay: 0.05s; }
+.anim-delay-2 { animation-delay: 0.12s; }
+.anim-delay-3 { animation-delay: 0.2s; }
+.anim-delay-4 { animation-delay: 0.3s; }
+.anim-delay-5 { animation-delay: 0.4s; }
+.anim-delay-6 { animation-delay: 0.55s; }
+
+/* ── Page-level fade transition ── */
+@keyframes page-in {
+  0% { opacity: 0; transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.page-enter {
+  animation: page-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Focus-out blur ── */
+@keyframes blur-in {
+  0% { backdrop-filter: blur(0px); opacity: 0; }
+  100% { backdrop-filter: blur(4px); opacity: 1; }
+}
+
+.blur-enter {
+  animation: blur-in 0.25s ease forwards;
+}
+
+/* ── Key press pop ── */
+@keyframes key-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+.key-press {
+  animation: key-pop 0.12s ease;
+}
+
+/* ── Subtle glow pulse for active key ── */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px 2px var(--main-color); }
+  50% { box-shadow: 0 0 16px 4px var(--main-color); }
+}
+
+.glow-active {
+  animation: glow-pulse 1s ease-in-out infinite;
+}
+
+/* ── Live WPM counter shimmer ── */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.text-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--main-color) 0%,
+    var(--text-color) 50%,
+    var(--main-color) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ── Finger tap animation ── */
+@keyframes finger-tap {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(4px); }
+  100% { transform: translateY(0); }
+}
+
+.finger-tap {
+  animation: finger-tap 0.2s ease;
+}
+
+/* ── Custom scrollbar (webkit) ── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-color);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--sub-color);
   border-radius: 9999px;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--main-color);
+}
+
+/* ── Selection ── */
+::selection {
+  background-color: var(--main-color);
+  color: var(--bg-color);
+}
+
+/* ── Smooth word container scrolling ── */
+.words-container {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 8%,
+    black 85%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 8%,
+    black 85%,
+    transparent 100%
+  );
 }

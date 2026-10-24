@@ -11,9 +11,15 @@ interface LeaderboardModalProps {
 }
 
 export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
+  const [pbs, setPbs] = React.useState<Record<string, TestResult>>({});
 
-  const pbs: Record<string, TestResult> = loadPersonalBests();
+  React.useEffect(() => {
+    if (isOpen) {
+      setPbs(loadPersonalBests());
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const standardModes = [
     { label: 'Time 15s', key: 'time_15s_norm_norm' },

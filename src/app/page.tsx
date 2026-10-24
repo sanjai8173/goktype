@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
 import { ModeSelector } from '@/components/ModeSelector';
 import { TypingArea } from '@/components/TypingArea';
@@ -25,7 +25,7 @@ export default function Home() {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [isClientLoaded, setIsClientLoaded] = useState(false);
 
-  // Test mode states
+  // Test mode
   const [mode, setMode] = useState<TestMode>('time');
   const [timeOption, setTimeOption] = useState<TimeOption>(30);
   const [wordOption, setWordOption] = useState<WordOption>(25);
@@ -37,13 +37,14 @@ export default function Home() {
   const [currentChar, setCurrentChar] = useState<string>('');
   const [activeResult, setActiveResult] = useState<TestResult | null>(null);
   const [testKey, setTestKey] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
 
-  // Modal open states
+  // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
-  // Load settings on mount
+  // Load settings
   useEffect(() => {
     const loaded = loadSettings();
     setSettings(loaded);
@@ -51,32 +52,35 @@ export default function Home() {
     setIsClientLoaded(true);
   }, []);
 
-  // Update theme when setting changes
-  const handleUpdateSettings = (updater: (prev: UserSettings) => UserSettings) => {
+  const handleUpdateSettings = useCallback((updater: (prev: UserSettings) => UserSettings) => {
     setSettings((prev) => {
       const updated = updater(prev);
       saveSettings(updated);
       applyThemeToDom(getThemeById(updated.theme));
       return updated;
     });
-  };
+  }, []);
 
-  // Reset or restart typing test
-  const handleResetTest = () => {
+  const handleResetTest = useCallback(() => {
     setActiveResult(null);
+    setIsTyping(false);
     setTestKey((k) => k + 1);
-  };
+  }, []);
 
-  // Test completion callback
-  const handleFinishTest = (result: TestResult) => {
+  const handleFinishTest = useCallback((result: TestResult) => {
     const { isPb } = saveTestResult(result);
     result.isPb = isPb;
+    setIsTyping(false);
     setActiveResult(result);
-  };
+  }, []);
+
+  const handleTypingStateChange = useCallback((typing: boolean) => {
+    setIsTyping(typing);
+  }, []);
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-between px-4 py-2 transition-colors duration-200">
-      {/* Top Header */}
+    <main className="min-h-screen flex flex-col items-center transition-colors duration-300">
+      {/* Header — fades out while typing */}
       <Header
         settings={settings}
         onUpdateSettings={handleUpdateSettings}
@@ -84,21 +88,20 @@ export default function Home() {
         onOpenStats={() => setIsStatsOpen(true)}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         onResetTest={handleResetTest}
+        isTyping={isTyping}
       />
 
-      {/* Main Content Body */}
-      <div className="w-full max-w-5xl flex flex-col items-center justify-center my-auto flex-1">
+      {/* ── Main content ── */}
+      <div className="w-full max-w-5xl flex flex-col items-center justify-center flex-1 px-4">
         {activeResult ? (
-          /* Test Finished Screen */
           <ResultScreen
             result={activeResult}
             onNextTest={handleResetTest}
             onRepeatTest={handleResetTest}
           />
         ) : (
-          /* Active Typing Test View */
-          <div className="w-full flex flex-col items-center animate-in fade-in duration-150">
-            {/* Mode Selector Pill */}
+          <div className="w-full flex flex-col items-center">
+            {/* Mode selector — fades out while typing */}
             <ModeSelector
               mode={mode}
               onSelectMode={(m) => {
@@ -130,9 +133,10 @@ export default function Home() {
                 setNumbers((n) => !n);
                 handleResetTest();
               }}
+              isTyping={isTyping}
             />
 
-            {/* Monkeytype Core Typing Engine */}
+            {/* Core typing engine */}
             <TypingArea
               key={testKey}
               mode={mode}
@@ -146,23 +150,38 @@ export default function Home() {
               caretStyle={settings.caretStyle}
               onFinishTest={handleFinishTest}
               onCurrentCharChange={setCurrentChar}
+              onTypingStateChange={handleTypingStateChange}
             />
 
-            {/* EdClub Interactive Finger & Hands Position Previewer */}
+            {/* Finger guide — fades smoothly */}
             {(settings.showHandsPreview || settings.showKeyboard) && (
-              <FingerPositionPreview
-                currentChar={currentChar}
-                isFocused={true}
-                showHands={settings.showHandsPreview}
-                showKeyboard={settings.showKeyboard}
-              />
+              <div
+                className={`w-full transition-all duration-500 ${
+                  isTyping
+                    ? 'opacity-60 scale-[0.97]'
+                    : 'opacity-100 scale-100'
+                }`}
+              >
+                <FingerPositionPreview
+                  currentChar={currentChar}
+                  isFocused={true}
+                  showHands={settings.showHandsPreview}
+                  showKeyboard={settings.showKeyboard}
+                />
+              </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Footer */}
-      <Footer />
+      {/* Footer — fades while typing */}
+      <div
+        className={`w-full flex justify-center transition-all duration-500 ${
+          isTyping ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <Footer />
+      </div>
 
       {/* Modals */}
       <SettingsModal

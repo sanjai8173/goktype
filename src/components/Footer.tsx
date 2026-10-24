@@ -20,45 +20,43 @@ const GithubIcon = ({ className = 'w-3.5 h-3.5' }: { className?: string }) => (
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="w-full max-w-5xl py-6 px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-[var(--sub-color)] border-t border-[var(--sub-color)]/10 select-none mt-auto">
-      {/* Shortcuts hint */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1.5">
-          <kbd className="px-2 py-0.5 rounded bg-[var(--sub-alt-color)] border border-[var(--sub-color)]/30 text-[var(--text-color)] text-[10px] font-bold">
+    <footer className="w-full max-w-5xl py-4 px-4 flex items-center justify-between text-[11px] font-mono text-[var(--sub-color)] select-none mt-auto opacity-60 hover:opacity-100 transition-opacity duration-300">
+      {/* Shortcuts */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <kbd className="px-1.5 py-0.5 rounded bg-[var(--sub-alt-color)] border border-[var(--sub-color)]/20 text-[10px] font-bold text-[var(--text-color)]/70">
             tab
           </kbd>
-          <span>restart test</span>
+          <span className="text-[var(--sub-color)]/70">restart</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <kbd className="px-2 py-0.5 rounded bg-[var(--sub-alt-color)] border border-[var(--sub-color)]/30 text-[var(--text-color)] text-[10px] font-bold">
+        <div className="flex items-center gap-1">
+          <kbd className="px-1.5 py-0.5 rounded bg-[var(--sub-alt-color)] border border-[var(--sub-color)]/20 text-[10px] font-bold text-[var(--text-color)]/70">
             esc
           </kbd>
-          <span>reset / finish zen</span>
+          <span className="text-[var(--sub-color)]/70">reset</span>
         </div>
       </div>
 
-      {/* Personal Branding */}
-      <div className="flex items-center gap-2">
-        <span>crafted with</span>
-        <Heart className="w-3.5 h-3.5 text-red-500 fill-current" />
-        <span>by</span>
+      {/* Branding */}
+      <div className="flex items-center gap-1.5">
+        <Heart className="w-3 h-3 text-red-500/70 fill-red-500/70" />
         <a
           href="https://github.com/sanjai8173"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[var(--main-color)] font-semibold hover:underline"
+          className="hover:text-[var(--main-color)] transition-colors"
         >
           sanjai8173
         </a>
-        <span>•</span>
+        <span className="text-[var(--sub-color)]/30">·</span>
         <a
           href="https://github.com/sanjai8173/goktype"
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-[var(--text-color)] flex items-center gap-1 transition-colors"
+          className="hover:text-[var(--main-color)] transition-colors flex items-center gap-1"
         >
-          <GithubIcon className="w-3.5 h-3.5" />
-          <span>goktype</span>
+          <GithubIcon className="w-3 h-3" />
+          goktype
         </a>
       </div>
     </footer>

@@ -174,13 +174,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     showHandsPreview: !prev.showHandsPreview,
                   }))
                 }
-                className={`w-12 h-6 rounded-full transition-colors relative ${
-                  settings.showHandsPreview ? 'bg-[var(--main-color)]' : 'bg-[var(--sub-color)]/40'
+                className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 ${
+                  settings.showHandsPreview ? 'bg-[var(--main-color)]' : 'bg-[var(--sub-color)]/30'
                 }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full bg-[var(--bg-color)] absolute top-0.5 transition-transform ${
-                    settings.showHandsPreview ? 'left-6.5' : 'left-0.5'
+                  className={`w-5 h-5 rounded-full bg-[var(--bg-color)] shadow-sm transition-transform duration-200 transform ${
+                    settings.showHandsPreview ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
               </button>
@@ -195,13 +195,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     showKeyboard: !prev.showKeyboard,
                   }))
                 }
-                className={`w-12 h-6 rounded-full transition-colors relative ${
-                  settings.showKeyboard ? 'bg-[var(--main-color)]' : 'bg-[var(--sub-color)]/40'
+                className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 ${
+                  settings.showKeyboard ? 'bg-[var(--main-color)]' : 'bg-[var(--sub-color)]/30'
                 }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full bg-[var(--bg-color)] absolute top-0.5 transition-transform ${
-                    settings.showKeyboard ? 'left-6.5' : 'left-0.5'
+                  className={`w-5 h-5 rounded-full bg-[var(--bg-color)] shadow-sm transition-transform duration-200 transform ${
+                    settings.showKeyboard ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
               </button>
