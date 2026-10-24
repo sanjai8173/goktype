@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Volume2, Palette, Hand, Terminal, Sliders } from 'lucide-react';
+import { X, Volume2, Palette, Terminal, Sliders } from 'lucide-react';
 import { CaretStyle, SoundPack, ThemeId, UserSettings } from '@/types';
 import { THEMES } from '@/lib/constants/themes';
 import { soundPlayer } from '@/lib/sound/soundPlayer';
@@ -155,58 +155,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               />
             </div>
           )}
-        </div>
-
-        {/* EdClub Finger Position & Hands Guide */}
-        <div className="flex flex-col gap-3 border-t border-[var(--sub-color)]/20 pt-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-[var(--sub-color)] uppercase tracking-wider">
-            <Hand className="w-4 h-4 text-[var(--main-color)]" />
-            <span>EdClub Finger Position Previewer</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--sub-alt-color)]/50 border border-[var(--sub-color)]/20">
-              <span className="text-xs">Interactive Hands Preview</span>
-              <button
-                onClick={() =>
-                  onUpdateSettings((prev) => ({
-                    ...prev,
-                    showHandsPreview: !prev.showHandsPreview,
-                  }))
-                }
-                className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 ${
-                  settings.showHandsPreview ? 'bg-[var(--main-color)]' : 'bg-[var(--sub-color)]/30'
-                }`}
-              >
-                <span
-                  className={`w-5 h-5 rounded-full bg-[var(--bg-color)] shadow-sm transition-transform duration-200 transform ${
-                    settings.showHandsPreview ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--sub-alt-color)]/50 border border-[var(--sub-color)]/20">
-              <span className="text-xs">Virtual QWERTY Keyboard</span>
-              <button
-                onClick={() =>
-                  onUpdateSettings((prev) => ({
-                    ...prev,
-                    showKeyboard: !prev.showKeyboard,
-                  }))
-                }
-                className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 ${
-                  settings.showKeyboard ? 'bg-[var(--main-color)]' : 'bg-[var(--sub-color)]/30'
-                }`}
-              >
-                <span
-                  className={`w-5 h-5 rounded-full bg-[var(--bg-color)] shadow-sm transition-transform duration-200 transform ${
-                    settings.showKeyboard ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Caret Style & Appearance */}

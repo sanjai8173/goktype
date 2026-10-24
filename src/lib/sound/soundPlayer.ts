@@ -128,26 +128,125 @@ class SoundSynthesizer {
     this.playNoise(ctx, master, now, 0.04, 600, 0.5);
   }
 
-  // Typewriter: Sharp metallic key strike
+  // Typewriter: Authentic vintage mechanical typewriter key strike with platen impact and chassis resonance
   private playTypewriter(ctx: AudioContext, master: GainNode, now: number, isSpace: boolean) {
-    const freq = isSpace ? 750 : 1200 + (Math.random() - 0.5) * 150;
+    if (isSpace) {
+      // Spacebar: Escapement ratchet click & hollow mechanical carriage advance
+      const baseFreq = 160 + (Math.random() - 0.5) * 20;
 
-    const osc = ctx.createOscillator();
-    const oscGain = ctx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(freq, now);
-    osc.frequency.exponentialRampToValueAtTime(200, now + 0.04);
+      // Low hollow body thud
+      const thud = ctx.createOscillator();
+      const thudGain = ctx.createGain();
+      thud.type = 'triangle';
+      thud.frequency.setValueAtTime(baseFreq * 1.5, now);
+      thud.frequency.exponentialRampToValueAtTime(65, now + 0.055);
 
-    oscGain.gain.setValueAtTime(0.4, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      thudGain.gain.setValueAtTime(0.75, now);
+      thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
 
-    osc.connect(oscGain);
-    oscGain.connect(master);
-    osc.start(now);
-    osc.stop(now + 0.045);
+      thud.connect(thudGain);
+      thudGain.connect(master);
+      thud.start(now);
+      thud.stop(now + 0.06);
 
-    // Metallic chime ringing
-    this.playNoise(ctx, master, now, 0.05, 3000, 0.3);
+      // Ratchet escapement tooth click & spring tension noise
+      this.playNoise(ctx, master, now, 0.035, 1400, 0.5);
+      this.playNoise(ctx, master, now + 0.006, 0.02, 2800, 0.3);
+      return;
+    }
+
+    // Character key: Typebar hammer impact against ink ribbon & rubber platen cylinder
+    const jitter = (Math.random() - 0.5) * 0.14;
+    const strikeFreq = (2400 + (Math.random() - 0.5) * 250) * (1 + jitter);
+    const bodyFreq = (360 + (Math.random() - 0.5) * 40) * (1 + jitter);
+
+    // 1. Sharp metallic type slug impact (rapid frequency drop)
+    const slug = ctx.createOscillator();
+    const slugGain = ctx.createGain();
+    slug.type = 'triangle';
+    slug.frequency.setValueAtTime(strikeFreq, now);
+    slug.frequency.exponentialRampToValueAtTime(450, now + 0.024);
+
+    slugGain.gain.setValueAtTime(0.9, now);
+    slugGain.gain.exponentialRampToValueAtTime(0.001, now + 0.024);
+
+    slug.connect(slugGain);
+    slugGain.connect(master);
+    slug.start(now);
+    slug.stop(now + 0.026);
+
+    // 2. Heavy chassis / platen rubber body thud (gives mechanical depth)
+    const body = ctx.createOscillator();
+    const bodyGain = ctx.createGain();
+    body.type = 'sine';
+    body.frequency.setValueAtTime(bodyFreq, now);
+    body.frequency.exponentialRampToValueAtTime(85, now + 0.05);
+
+    bodyGain.gain.setValueAtTime(0.8, now);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    body.connect(bodyGain);
+    bodyGain.connect(master);
+    body.start(now);
+    body.stop(now + 0.055);
+
+    // 3. Crisp mechanical impact noise snap (bandpass ribbon friction)
+    this.playNoise(ctx, master, now, 0.028, 2600, 0.6);
+
+    // 4. Mechanism lever travel noise
+    this.playNoise(ctx, master, now + 0.003, 0.038, 1200, 0.35);
+
+    // 5. High metallic harmonic overtone ring
+    const ring = ctx.createOscillator();
+    const ringGain = ctx.createGain();
+    ring.type = 'sine';
+    ring.frequency.setValueAtTime(4400 * (1 + jitter), now);
+    ringGain.gain.setValueAtTime(0.14, now);
+    ringGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    ring.connect(ringGain);
+    ringGain.connect(master);
+    ring.start(now);
+    ring.stop(now + 0.045);
+  }
+
+  // Typewriter carriage return bell ('Ding!')
+  public playBell(volume: number = 0.5) {
+    if (volume <= 0) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(volume * 0.45, now);
+      master.connect(ctx.destination);
+
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(2637, now); // E7 high bell chime
+
+      oscGain.gain.setValueAtTime(0.85, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
+      osc.connect(oscGain);
+      oscGain.connect(master);
+      osc.start(now);
+      osc.stop(now + 0.75);
+
+      // Overtone harmonic
+      const harm = ctx.createOscillator();
+      const harmGain = ctx.createGain();
+      harm.type = 'sine';
+      harm.frequency.setValueAtTime(5274, now);
+      harmGain.gain.setValueAtTime(0.35, now);
+      harmGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      harm.connect(harmGain);
+      harmGain.connect(master);
+      harm.start(now);
+      harm.stop(now + 0.45);
+    } catch {
+      // ignore
+    }
   }
 
   // Pop: Water bubble / soft wooden pop

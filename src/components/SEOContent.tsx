@@ -53,12 +53,12 @@ export const SEOContent: React.FC = () => {
             <div className="p-4 rounded-2xl bg-[var(--bg-color)]/60 border border-[var(--sub-color)]/10">
               <h2 className="text-sm font-bold text-[var(--text-color)] mb-1 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-[var(--main-color)]" />
-                EdClub Interactive Finger Previewer
+                Minimalist Distraction-Free Flow
               </h2>
               <p className="text-[11px]">
-                Master proper touch-typing ergonomics. GokType displays a color-coded QWERTY keyboard
-                with animated Left and Right hands showing precisely which finger (Pinky, Ring, Middle,
-                Index, Thumb) should strike every key without looking down at your physical keyboard.
+                Focus purely on your rhythm and muscle memory. GokType features a sleek black and white
+                interface with smooth caret transitions, instantaneous live WPM pacing, and automatic 
+                line scrolling designed for maximum concentration.
               </p>
             </div>
 

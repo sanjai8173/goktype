@@ -106,6 +106,17 @@ export interface UserSettings {
   fontFamily: 'JetBrains Mono' | 'Roboto Mono' | 'Fira Code' | 'Geist Mono';
 }
 
+export interface UserProfile {
+  username: string;
+  bio: string;
+  keyboard: string;
+  avatar: 'crown' | 'terminal' | 'feather' | 'sparkle' | 'ghost' | 'zap' | 'keyboard' | 'award';
+  joinedDate: number;
+  targetWpm: number;
+  targetAccuracy: number;
+  layout: string;
+}
+
 export interface QuoteItem {
   id: number;
   text: string;

@@ -1,16 +1,17 @@
-import { TestResult, UserSettings } from '@/types';
+import { TestResult, UserProfile, UserSettings } from '@/types';
 
 const SETTINGS_KEY = 'goktype_settings_v1';
 const RESULTS_KEY = 'goktype_results_v1';
 const PBS_KEY = 'goktype_pbs_v1';
+const PROFILE_KEY = 'goktype_profile_v1';
 
 export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'gok',
-  soundPack: 'thock',
-  soundVolume: 0.6,
+  soundPack: 'typewriter',
+  soundVolume: 0.7,
   caretStyle: 'line',
-  showHandsPreview: true,
-  showKeyboard: true,
+  showHandsPreview: false,
+  showKeyboard: false,
   punctuation: false,
   numbers: false,
   quickRestart: 'tab',
@@ -18,12 +19,52 @@ export const DEFAULT_SETTINGS: UserSettings = {
   fontFamily: 'JetBrains Mono',
 };
 
+export const DEFAULT_PROFILE: UserProfile = {
+  username: 'Typist',
+  bio: 'Vintage mechanical typewriter typist.',
+  keyboard: 'Underwood No. 5 · Cherry MX Blue',
+  avatar: 'crown',
+  joinedDate: Date.now(),
+  targetWpm: 100,
+  targetAccuracy: 98,
+  layout: 'QWERTY',
+};
+
+export function loadUserProfile(): UserProfile {
+  if (typeof window === 'undefined') return DEFAULT_PROFILE;
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (!raw) {
+      saveUserProfile(DEFAULT_PROFILE);
+      return DEFAULT_PROFILE;
+    }
+    return { ...DEFAULT_PROFILE, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_PROFILE;
+  }
+}
+
+export function saveUserProfile(profile: UserProfile): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  } catch (e) {
+    console.error('Error saving profile to localStorage', e);
+  }
+}
+
 export function loadSettings(): UserSettings {
   if (typeof window === 'undefined') return DEFAULT_SETTINGS;
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      showHandsPreview: false,
+      showKeyboard: false,
+    };
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -88,6 +129,19 @@ export function loadPersonalBests(): Record<string, TestResult> {
     return JSON.parse(raw);
   } catch {
     return {};
+  }
+}
+
+export function deleteTestResult(id: string): TestResult[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const results = loadTestResults();
+    const updated = results.filter((r) => r.id !== id);
+    localStorage.setItem(RESULTS_KEY, JSON.stringify(updated));
+    return updated;
+  } catch (e) {
+    console.error('Error deleting test result', e);
+    return [];
   }
 }
 

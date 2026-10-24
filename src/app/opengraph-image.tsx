@@ -36,8 +36,8 @@ export default async function Image() {
             width: 80,
             height: 80,
             borderRadius: 24,
-            backgroundColor: '#f5b041',
-            boxShadow: '0 0 40px rgba(245, 176, 65, 0.4)',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 0 40px rgba(255, 255, 255, 0.2)',
             marginBottom: 28,
           }}
         >
@@ -45,8 +45,8 @@ export default async function Image() {
             width="44"
             height="44"
             viewBox="0 0 24 24"
-            fill="#141419"
-            stroke="#141419"
+            fill="#0c0c0e"
+            stroke="#0c0c0e"
             strokeWidth="2"
           >
             <path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.735H5.81a1 1 0 0 1-.957-.735L2.02 6.02a.5.5 0 0 1 .798-.52l4.277 3.664a1 1 0 0 0 1.516-.294z" />
@@ -64,21 +64,21 @@ export default async function Image() {
             marginBottom: 16,
           }}
         >
-          gok<span style={{ color: '#f5b041' }}>type</span>
+          gok<span style={{ color: '#71717a' }}>type</span>
         </div>
 
         {/* Tagline */}
         <div
           style={{
             fontSize: 26,
-            color: '#636573',
+            color: '#71717a',
             textAlign: 'center',
             maxWidth: 820,
             lineHeight: 1.4,
             marginBottom: 36,
           }}
         >
-          Minimalist Speed Typing Test · Mechanical Switch Sounds · EdClub Finger Guide
+          Minimalist Speed Typing Test · Mechanical Switch Sounds · Monochrome Elegance
         </div>
 
         {/* Feature Pills */}
@@ -93,9 +93,9 @@ export default async function Image() {
             style={{
               padding: '10px 22px',
               borderRadius: 999,
-              backgroundColor: '#1d1e25',
-              border: '1px solid rgba(245, 176, 65, 0.3)',
-              color: '#f5b041',
+              backgroundColor: '#18181b',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              color: '#ffffff',
               fontSize: 18,
               fontWeight: 700,
             }}

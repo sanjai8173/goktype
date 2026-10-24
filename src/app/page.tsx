@@ -4,8 +4,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
 import { ModeSelector } from '@/components/ModeSelector';
 import { TypingArea } from '@/components/TypingArea';
-import { FingerPositionPreview } from '@/components/FingerPositionPreview';
 import { ResultScreen } from '@/components/ResultScreen';
+import { ProfileView } from '@/components/ProfileView';
 import { SettingsModal } from '@/components/SettingsModal';
 import { StatsModal } from '@/components/StatsModal';
 import { LeaderboardModal } from '@/components/LeaderboardModal';
@@ -16,14 +16,25 @@ import {
   TestMode,
   TestResult,
   TimeOption,
+  UserProfile,
   UserSettings,
   WordOption,
 } from '@/types';
-import { DEFAULT_SETTINGS, loadSettings, saveSettings, saveTestResult } from '@/lib/storage/localStorage';
+import {
+  DEFAULT_PROFILE,
+  DEFAULT_SETTINGS,
+  loadUserProfile,
+  loadSettings,
+  saveUserProfile,
+  saveSettings,
+  saveTestResult,
+} from '@/lib/storage/localStorage';
 import { applyThemeToDom, getThemeById } from '@/lib/constants/themes';
 
 export default function Home() {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+  const [activeView, setActiveView] = useState<'test' | 'profile'>('test');
   const [isClientLoaded, setIsClientLoaded] = useState(false);
 
   // Test mode
@@ -45,11 +56,12 @@ export default function Home() {
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
-  // Load settings
+  // Load settings & profile
   useEffect(() => {
-    const loaded = loadSettings();
-    setSettings(loaded);
-    applyThemeToDom(getThemeById(loaded.theme));
+    const loadedSettings = loadSettings();
+    setSettings(loadedSettings);
+    applyThemeToDom(getThemeById(loadedSettings.theme));
+    setProfile(loadUserProfile());
     setIsClientLoaded(true);
   }, []);
 
@@ -62,7 +74,13 @@ export default function Home() {
     });
   }, []);
 
+  const handleUpdateProfile = useCallback((updated: UserProfile) => {
+    setProfile(updated);
+    saveUserProfile(updated);
+  }, []);
+
   const handleResetTest = useCallback(() => {
+    setActiveView('test');
     setActiveResult(null);
     setIsTyping(false);
     setTestKey((k) => k + 1);
@@ -88,13 +106,25 @@ export default function Home() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenStats={() => setIsStatsOpen(true)}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+        onOpenProfile={() => {
+          setActiveView('profile');
+          setIsTyping(false);
+          setActiveResult(null);
+        }}
         onResetTest={handleResetTest}
         isTyping={isTyping}
+        activeView={activeView}
       />
 
       {/* ── Main content ── */}
       <div className="w-full max-w-5xl flex flex-col items-center justify-center flex-1 px-4">
-        {activeResult ? (
+        {activeView === 'profile' ? (
+          <ProfileView
+            profile={profile}
+            onUpdateProfile={handleUpdateProfile}
+            onBackToTest={() => setActiveView('test')}
+          />
+        ) : activeResult ? (
           <ResultScreen
             result={activeResult}
             onNextTest={handleResetTest}
@@ -153,36 +183,20 @@ export default function Home() {
               onCurrentCharChange={setCurrentChar}
               onTypingStateChange={handleTypingStateChange}
             />
-
-            {/* Finger guide — fades smoothly */}
-            {(settings.showHandsPreview || settings.showKeyboard) && (
-              <div
-                className={`w-full transition-all duration-500 ${
-                  isTyping
-                    ? 'opacity-60 scale-[0.97]'
-                    : 'opacity-100 scale-100'
-                }`}
-              >
-                <FingerPositionPreview
-                  currentChar={currentChar}
-                  isFocused={true}
-                  showHands={settings.showHandsPreview}
-                  showKeyboard={settings.showKeyboard}
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
 
       {/* SEO Content & FAQs — accessible & crawlable */}
-      <div
-        className={`w-full flex justify-center transition-all duration-500 ${
-          isTyping ? 'opacity-0 pointer-events-none' : 'opacity-100'
-        }`}
-      >
-        <SEOContent />
-      </div>
+      {activeView === 'test' && (
+        <div
+          className={`w-full flex justify-center transition-all duration-500 ${
+            isTyping ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+        >
+          <SEOContent />
+        </div>
+      )}
 
       {/* Footer — fades while typing */}
       <div

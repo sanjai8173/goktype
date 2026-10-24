@@ -80,6 +80,7 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
   const wordsInnerRef = useRef<HTMLDivElement>(null);
   const activeWordRef = useRef<HTMLDivElement>(null);
   const activeLetterRef = useRef<HTMLSpanElement | null>(null);
+  const lastLetterRef = useRef<HTMLSpanElement | null>(null);
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const scrollOffsetRef = useRef(0);
@@ -107,6 +108,9 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
     };
     timelineRef.current = [];
     scrollOffsetRef.current = 0;
+    if (wordsInnerRef.current) {
+      wordsInnerRef.current.style.transform = 'translateY(0px)';
+    }
     setHasStarted(false);
     setCurrentWordIndex(0);
     setCurrentLetterIndex(0);
@@ -166,17 +170,37 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
 
   // ── Caret positioning via DOM measurement ──
   const updateCaret = useCallback(() => {
-    if (!wordsWrapperRef.current) return;
-    const wrapperRect = wordsWrapperRef.current.getBoundingClientRect();
+    if (!wordsInnerRef.current) return;
+    const innerRect = wordsInnerRef.current.getBoundingClientRect();
 
-    const el = activeLetterRef.current;
-    if (el) {
-      const r = el.getBoundingClientRect();
-      setCaretX(r.left - wrapperRect.left);
-      setCaretY(r.top - wrapperRect.top);
-      setCaretH(r.height);
+    const curWord = words[currentWordIndex];
+    const isAtEnd = !curWord || currentLetterIndex >= curWord.letters.length;
+
+    let targetEl: HTMLElement | null = null;
+    let measureRight = false;
+
+    if (!isAtEnd && activeLetterRef.current) {
+      targetEl = activeLetterRef.current;
+      measureRight = false;
+    } else if (lastLetterRef.current) {
+      targetEl = lastLetterRef.current;
+      measureRight = true;
+    } else if (activeWordRef.current) {
+      targetEl = activeWordRef.current;
+      measureRight = isAtEnd;
     }
-  }, []);
+
+    if (targetEl) {
+      const r = targetEl.getBoundingClientRect();
+      const x = measureRight ? r.right - innerRect.left : r.left - innerRect.left;
+      const y = r.top - innerRect.top;
+      setCaretX(x);
+      setCaretY(y);
+      if (r.height > 10) {
+        setCaretH(r.height);
+      }
+    }
+  }, [words, currentWordIndex, currentLetterIndex]);
 
   // After every render that changes word/letter index, recompute caret
   useLayoutEffect(() => {
@@ -189,28 +213,23 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
   }, [updateCaret]);
 
   // ── Smooth line scrolling ──
-  // Monkeytype keeps ~3 lines visible and scrolls when the active word
-  // moves past the first visible line.
   useLayoutEffect(() => {
     if (!wordsWrapperRef.current || !activeWordRef.current || !wordsInnerRef.current) return;
-    const wrapperRect = wordsWrapperRef.current.getBoundingClientRect();
-    const wordRect = activeWordRef.current.getBoundingClientRect();
 
-    // word's top relative to the inner (scrollable) container, accounting
-    // for the current scroll offset
-    const wordRelativeTop = wordRect.top - wrapperRect.top + scrollOffsetRef.current;
+    const activeWordTop = activeWordRef.current.offsetTop;
+    const firstWord = wordsInnerRef.current.firstElementChild as HTMLElement;
+    const firstWordTop = firstWord ? firstWord.offsetTop : 0;
 
-    // Each line is roughly the line-height. We want the active word to stay
-    // within the first 1.5 lines (so we see context ahead).
-    const lineHeight = caretH * 1.65; // approximate line + gap
-    const targetTop = lineHeight * 0.05; // keep active on first line
+    const lineDiff = activeWordTop - firstWordTop;
+    const wordHeight = activeWordRef.current.offsetHeight || 44;
 
-    if (wordRelativeTop > lineHeight) {
-      const newOffset = wordRelativeTop - targetTop;
-      scrollOffsetRef.current = newOffset;
-      wordsInnerRef.current.style.transform = `translateY(-${newOffset}px)`;
+    // When the active word is on line 2 or beyond, scroll so the active line stays visible
+    if (lineDiff > wordHeight * 0.5) {
+      wordsInnerRef.current.style.transform = `translateY(-${lineDiff}px)`;
+    } else {
+      wordsInnerRef.current.style.transform = 'translateY(0px)';
     }
-  }, [currentWordIndex, caretH]);
+  }, [currentWordIndex]);
 
   // ── Caret "moving" state for blink vs smooth ──
   const markCaretMoving = useCallback(() => {
@@ -226,6 +245,10 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
       timerIntervalRef.current = null;
     }
     onTypingStateChange?.(false);
+
+    if (soundPack === 'typewriter') {
+      soundPlayer.playBell(soundVolume);
+    }
 
     const duration = mode === 'time' ? timeOption : Math.max(1, elapsedSeconds);
     const stats = keystrokeStats.current;
@@ -349,6 +372,9 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
     // SPACE
     if (e.key === ' ') {
       e.preventDefault();
+      // Ignore space if no letter in current word has been typed yet
+      if (currentLetterIndex === 0) return;
+
       soundPlayer.playKey(soundPack, soundVolume, true);
 
       let newWords = [...words];
@@ -527,38 +553,38 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
       {/* ── Words display with 3-line window ── */}
       <div
         ref={wordsWrapperRef}
-        className="words-container relative w-full overflow-hidden"
-        style={{ height: `${caretH * 3.6}px` }}
+        className="words-container relative w-full overflow-hidden select-none min-h-[120px]"
+        style={{ height: `${Math.max(34, caretH) * 3.5}px` }}
       >
-        {/* Smooth caret */}
-        {isFocused && caretStyle !== 'off' && (
-          <div
-            style={{
-              transform: `translate(${caretX}px, ${caretY}px)`,
-              height: `${caretH}px`,
-              willChange: 'transform',
-            }}
-            className={`absolute pointer-events-none z-20 transition-transform duration-75 ease-out ${
-              isCaretMoving ? '' : 'caret-blink'
-            } ${
-              caretStyle === 'line'
-                ? 'w-[3px] rounded-full bg-[var(--caret-color)]'
-                : caretStyle === 'block'
-                ? 'w-[0.65em] bg-[var(--caret-color)]/25 rounded-sm'
-                : caretStyle === 'underline'
-                ? 'w-[0.65em] border-b-[3px] border-[var(--caret-color)]'
-                : caretStyle === 'box'
-                ? 'w-[0.65em] border-2 border-[var(--caret-color)] rounded-sm'
-                : 'hidden'
-            }`}
-          />
-        )}
-
         <div
           ref={wordsInnerRef}
-          className="flex flex-wrap content-start gap-x-[0.65em] leading-relaxed transition-transform duration-200 ease-out"
+          className="relative flex flex-wrap content-start gap-x-[0.65em] leading-relaxed transition-transform duration-200 ease-out"
           style={{ fontSize: 'clamp(1.2rem, 2.5vw, 1.75rem)' }}
         >
+          {/* Smooth caret inside wordsInnerRef */}
+          {isFocused && caretStyle !== 'off' && (
+            <div
+              style={{
+                transform: `translate3d(${caretX}px, ${caretY}px, 0)`,
+                height: `${caretH}px`,
+                willChange: 'transform',
+              }}
+              className={`absolute top-0 left-0 pointer-events-none z-20 transition-transform duration-75 ease-out ${
+                isCaretMoving ? '' : 'caret-blink'
+              } ${
+                caretStyle === 'line'
+                  ? 'w-[2.5px] rounded-full bg-[var(--caret-color)]'
+                  : caretStyle === 'block'
+                  ? 'w-[0.62em] bg-[var(--caret-color)]/25 rounded-sm'
+                  : caretStyle === 'underline'
+                  ? 'w-[0.62em] border-b-[2.5px] border-[var(--caret-color)]'
+                  : caretStyle === 'box'
+                  ? 'w-[0.62em] border-2 border-[var(--caret-color)] rounded-sm'
+                  : 'hidden'
+              }`}
+            />
+          )}
+
           {words.map((word, wIdx) => {
             const isCurrentWord = wIdx === currentWordIndex;
             const isPastWord = wIdx < currentWordIndex;
@@ -577,11 +603,15 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
               >
                 {word.letters.map((letter, lIdx) => {
                   const isCurrentLetter = isCurrentWord && lIdx === currentLetterIndex;
+                  const isLastLetter = isCurrentWord && lIdx === word.letters.length - 1;
 
                   return (
                     <span
                       key={lIdx}
-                      ref={isCurrentLetter ? activeLetterRef : null}
+                      ref={(el) => {
+                        if (isCurrentLetter) activeLetterRef.current = el;
+                        if (isLastLetter) lastLetterRef.current = el;
+                      }}
                       className={`inline-block transition-colors duration-50 ${
                         letter.status === 'correct'
                           ? 'text-[var(--text-color)]'
@@ -598,11 +628,6 @@ export const TypingArea: React.FC<TypingAreaProps> = ({
                     </span>
                   );
                 })}
-
-                {/* Space caret ref at end of current word */}
-                {isCurrentWord && currentLetterIndex >= word.letters.length && (
-                  <span ref={activeLetterRef} className="inline-block w-[3px]" />
-                )}
               </div>
             );
           })}

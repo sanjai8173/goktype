@@ -35,14 +35,14 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           angle: 60,
           spread: 55,
           origin: { x: 0, y: 0.7 },
-          colors: ['#f5b041', '#ffffff', '#2dd4bf'],
+          colors: ['#ffffff', '#e4e4e7', '#a1a1aa'],
         });
         confetti({
           particleCount: 3,
           angle: 120,
           spread: 55,
           origin: { x: 1, y: 0.7 },
-          colors: ['#f5b041', '#a78bfa', '#f472b6'],
+          colors: ['#ffffff', '#d4d4d8', '#71717a'],
         });
         if (Date.now() < end) requestAnimationFrame(frame);
       };

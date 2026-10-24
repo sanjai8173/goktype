@@ -5,10 +5,10 @@ import {
   Keyboard,
   Trophy,
   BarChart3,
+  User,
   Settings as SettingsIcon,
   Volume2,
   VolumeX,
-  Hand,
   Crown,
 } from 'lucide-react';
 import { UserSettings } from '@/types';
@@ -34,8 +34,10 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onOpenStats: () => void;
   onOpenLeaderboard: () => void;
+  onOpenProfile: () => void;
   onResetTest: () => void;
   isTyping?: boolean;
+  activeView?: 'test' | 'profile';
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -44,20 +46,15 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
   onOpenStats,
   onOpenLeaderboard,
+  onOpenProfile,
   onResetTest,
   isTyping = false,
+  activeView = 'test',
 }) => {
   const toggleSound = () => {
     onUpdateSettings((prev) => ({
       ...prev,
-      soundPack: prev.soundPack === 'off' ? 'thock' : 'off',
-    }));
-  };
-
-  const toggleHands = () => {
-    onUpdateSettings((prev) => ({
-      ...prev,
-      showHandsPreview: !prev.showHandsPreview,
+      soundPack: prev.soundPack === 'off' ? 'typewriter' : 'off',
     }));
   };
 
@@ -71,34 +68,59 @@ export const Header: React.FC<HeaderProps> = ({
       <button
         onClick={onResetTest}
         className="group flex items-center gap-2 transition-all duration-200 hover:scale-[1.02] text-left focus:outline-none"
-        title="Home"
+        title="Home (Typing Test)"
       >
-        <div className="relative w-8 h-8 rounded-lg bg-[var(--main-color)] flex items-center justify-center text-[var(--bg-color)] shadow-md shadow-[var(--main-color)]/15">
+        <div className="relative w-8 h-8 rounded-lg bg-[var(--main-color)] flex items-center justify-center text-[var(--bg-color)] shadow-md shadow-white/5">
           <Crown className="w-4 h-4 fill-current stroke-current" />
         </div>
         <div>
-          <span className="font-mono text-xl font-black tracking-tight text-[var(--text-color)] group-hover:text-[var(--main-color)] transition-colors leading-none">
-            gok<span className="text-[var(--main-color)]">type</span>
+          <span className="font-mono text-xl font-black tracking-tight text-[var(--text-color)] leading-none">
+            gok<span className="text-[var(--sub-color)] font-normal">type</span>
           </span>
         </div>
       </button>
 
       {/* Nav */}
       <nav className="flex items-center gap-0.5">
-        {([
-          { icon: Keyboard, action: onResetTest, tip: 'Typing Test', active: false },
-          { icon: Trophy, action: onOpenLeaderboard, tip: 'Personal Bests', active: false },
-          { icon: BarChart3, action: onOpenStats, tip: 'Statistics', active: false },
-        ] as const).map((item, idx) => (
-          <button
-            key={idx}
-            onClick={item.action}
-            className="p-2 rounded-lg hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-all duration-150 active:scale-90"
-            title={item.tip}
-          >
-            <item.icon className="w-[18px] h-[18px]" />
-          </button>
-        ))}
+        <button
+          onClick={onResetTest}
+          className={`p-2 rounded-lg transition-all duration-150 active:scale-90 ${
+            activeView === 'test'
+              ? 'text-[var(--main-color)] bg-[var(--main-color)]/10 font-bold'
+              : 'text-[var(--sub-color)] hover:text-[var(--main-color)] hover:bg-[var(--sub-alt-color)]'
+          }`}
+          title="Typing Test"
+        >
+          <Keyboard className="w-[18px] h-[18px]" />
+        </button>
+
+        <button
+          onClick={onOpenLeaderboard}
+          className="p-2 rounded-lg hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-all duration-150 active:scale-90"
+          title="Personal Bests"
+        >
+          <Trophy className="w-[18px] h-[18px]" />
+        </button>
+
+        <button
+          onClick={onOpenStats}
+          className="p-2 rounded-lg hover:bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--main-color)] transition-all duration-150 active:scale-90"
+          title="Statistics"
+        >
+          <BarChart3 className="w-[18px] h-[18px]" />
+        </button>
+
+        <button
+          onClick={onOpenProfile}
+          className={`p-2 rounded-lg transition-all duration-150 active:scale-90 ${
+            activeView === 'profile'
+              ? 'text-[var(--main-color)] bg-[var(--main-color)]/10 font-bold'
+              : 'text-[var(--sub-color)] hover:text-[var(--main-color)] hover:bg-[var(--sub-alt-color)]'
+          }`}
+          title="Monkeytype Profile & Setup"
+        >
+          <User className="w-[18px] h-[18px]" />
+        </button>
 
         <div className="w-px h-4 bg-[var(--sub-color)]/15 mx-1" />
 
@@ -116,18 +138,6 @@ export const Header: React.FC<HeaderProps> = ({
           ) : (
             <VolumeX className="w-[18px] h-[18px]" />
           )}
-        </button>
-
-        <button
-          onClick={toggleHands}
-          className={`p-2 rounded-lg transition-all duration-150 active:scale-90 ${
-            settings.showHandsPreview
-              ? 'text-[var(--main-color)] bg-[var(--main-color)]/10'
-              : 'text-[var(--sub-color)] hover:text-[var(--text-color)] hover:bg-[var(--sub-alt-color)]'
-          }`}
-          title="Finger Guide"
-        >
-          <Hand className="w-[18px] h-[18px]" />
         </button>
 
         <button

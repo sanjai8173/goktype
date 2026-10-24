@@ -5,11 +5,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'GokType — Minimalist Speed Typing Test & Trainer',
     short_name: 'GokType',
     description:
-      'Train touch typing speed with tactile mechanical keyboard sounds, live WPM analysis, and EdClub-style finger guides.',
+      'Train touch typing speed with tactile mechanical keyboard sounds and live WPM analysis.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#141419',
-    theme_color: '#f5b041',
+    background_color: '#0c0c0e',
+    theme_color: '#ffffff',
     icons: [
       {
         src: '/icon.png',
