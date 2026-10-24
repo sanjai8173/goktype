@@ -4,8 +4,11 @@
 
 Built with **Next.js 16**, **TypeScript**, and **Tailwind CSS**. 100% client-side with **LocalStorage persistence** — no backend required.
 
-Live GitHub Profile: [sanjai8173](https://github.com/sanjai8173)  
-Repository: [goktype](https://github.com/sanjai8173/goktype)
+🌐 Live App: **[https://typing.gokgok.in](https://typing.gokgok.in)**  
+👤 Author: [sanjai8173](https://github.com/sanjai8173)  
+📦 Repository: [goktype](https://github.com/sanjai8173/goktype)  
+🗺️ Sitemap: [https://typing.gokgok.in/sitemap.xml](https://typing.gokgok.in/sitemap.xml)  
+🤖 Robots.txt: [https://typing.gokgok.in/robots.txt](https://typing.gokgok.in/robots.txt)
 
 ---
 
