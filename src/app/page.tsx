@@ -10,6 +10,7 @@ import { SettingsModal } from '@/components/SettingsModal';
 import { StatsModal } from '@/components/StatsModal';
 import { LeaderboardModal } from '@/components/LeaderboardModal';
 import { Footer } from '@/components/Footer';
+import { SEOContent } from '@/components/SEOContent';
 import {
   QuoteLength,
   TestMode,
@@ -172,6 +173,15 @@ export default function Home() {
             )}
           </div>
         )}
+      </div>
+
+      {/* SEO Content & FAQs — accessible & crawlable */}
+      <div
+        className={`w-full flex justify-center transition-all duration-500 ${
+          isTyping ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <SEOContent />
       </div>
 
       {/* Footer — fades while typing */}
